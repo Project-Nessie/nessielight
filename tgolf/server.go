@@ -44,7 +44,8 @@ func (r *Server) SendfWithBtn(chatid string, btnMatrix [][]tbot.InlineKeyboardBu
 	btns := &tbot.InlineKeyboardMarkup{
 		InlineKeyboard: btnMatrix,
 	}
-	return r.Client.SendMessage(chatid, fmt.Sprintf(format, v...), tbot.OptInlineKeyboardMarkup(btns))
+	return r.Client.SendMessage(chatid, fmt.Sprintf(format, v...),
+		tbot.OptInlineKeyboardMarkup(btns), tbot.OptParseModeHTML)
 }
 
 // starter 为命令的触发字符串。若开头为 / 则会作为显示命令，否则为隐式命令。

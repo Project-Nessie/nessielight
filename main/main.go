@@ -24,6 +24,8 @@ func main() {
 	})
 
 	registerAdminService(&server)
+	registerProxyService(&server)
+	registerLoginService(&server)
 
 	if err := server.Start(); err != nil {
 		log.Fatal(err)
