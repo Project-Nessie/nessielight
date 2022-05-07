@@ -78,35 +78,41 @@ func (r *Server) Register(starter string, description string, init func(from *tb
 		current := 0
 		if from != nil && r.db.Get(fmt.Sprintf("user/%d", from.ID)) != nil && text != "/cancel" {
 			r.Sendf(chat.ID, "You're currently doing another job, send /cancel to cancel it")
-		} else if current == len(argv) {
-			f(argv, from, chat.ID)
-		} else {
-			r.Sendf(chat.ID, "Enter "+params[current].Description)
+			return
+		}
 
-			// 每一次被调用，填充一个参数
-			// return true if finish
-			mhandler := func(m *tbot.Message) bool {
-				if m.Text == "/cancel" {
-					r.Sendf(m.Chat.ID, "Operation canceled")
+		logger.Printf("user %d invoke %s", from.ID, starter)
+
+		if current == len(argv) {
+			f(argv, from, chat.ID)
+			return
+		}
+		r.Sendf(chat.ID, "Enter "+params[current].Description)
+
+		// 每一次被调用，填充一个参数
+		// return true if finish
+		mhandler := func(m *tbot.Message) bool {
+			logger.Printf("user %d invoke \"%s\" for argument \"%s\"", from.ID, starter, argv[current].Key)
+			if m.Text == "/cancel" {
+				r.Sendf(m.Chat.ID, "Operation canceled")
+				return true
+			}
+			if argv[current].Validator == nil || argv[current].Validator(m.Text) {
+				argv[current].Value = m.Text
+				current = current + 1
+				if current == len(argv) {
+					f(argv, m.From, m.Chat.ID)
 					return true
 				}
-				if argv[current].Validator == nil || argv[current].Validator(m.Text) {
-					argv[current].Value = m.Text
-					current = current + 1
-					if current == len(argv) {
-						f(argv, m.From, m.Chat.ID)
-						return true
-					}
-					r.Sendf(m.Chat.ID, "Enter %s\nSend /cancel to stop current operation", params[current].Description)
-					return false
-				} else {
-					r.Sendf(m.Chat.ID, "invalid argument %s. try again", argv[current].Key)
-					return false
-				}
+				r.Sendf(m.Chat.ID, "Enter %s\nSend /cancel to stop current operation", params[current].Description)
+				return false
+			} else {
+				r.Sendf(m.Chat.ID, "invalid argument %s. try again", argv[current].Key)
+				return false
 			}
-
-			r.db.Set(fmt.Sprintf("user/%d", from.ID), mhandler)
 		}
+
+		r.db.Set(fmt.Sprintf("user/%d", from.ID), mhandler)
 	}
 	r.Bot.HandleMessage(starter, handler)
 
@@ -128,7 +134,7 @@ func (r *Server) RegisterInlineButton(data string, handler func(cq *tbot.Callbac
 }
 
 func (r *Server) HandleCallback(cq *tbot.CallbackQuery) {
-	logger.Printf("HandleCallback: %v", *cq)
+	logger.Printf("HandleCallback: %s, message: %s", cq.Data, cq.Message.Text)
 	data := cq.Data
 	if r.callbacks[data] != nil {
 		r.callbacks[data](cq)
@@ -189,6 +195,27 @@ func (r *Server) StartCommand(starter string, from *tbot.User, chat tbot.Chat) e
 	}
 	r.commands[starter].Handler(&trigger)
 	return nil
+}
+
+func (r *Server) EditCallbackBtn(cq *tbot.CallbackQuery, btnMatrix [][]tbot.InlineKeyboardButton) (*tbot.Message, error) {
+	chatid := cq.Message.Chat.ID
+	msgid := cq.Message.MessageID
+	return r.Client.EditMessageReplyMarkup(chatid, msgid,
+		tbot.OptInlineKeyboardMarkup(&tbot.InlineKeyboardMarkup{InlineKeyboard: btnMatrix}))
+}
+
+func (r *Server) EditCallbackMsg(cq *tbot.CallbackQuery, format string, v ...interface{}) (*tbot.Message, error) {
+	chatid := cq.Message.Chat.ID
+	msgid := cq.Message.MessageID
+	return r.Client.EditMessageText(chatid, msgid, fmt.Sprintf(format, v...),
+		tbot.OptParseModeHTML, tbot.OptInlineKeyboardMarkup(cq.Message.ReplyMarkup))
+}
+func (r *Server) EditCallbackMsgWithBtn(cq *tbot.CallbackQuery, btnMatrix [][]tbot.InlineKeyboardButton,
+	format string, v ...interface{}) (*tbot.Message, error) {
+	chatid := cq.Message.Chat.ID
+	msgid := cq.Message.MessageID
+	return r.Client.EditMessageText(chatid, msgid, fmt.Sprintf(format, v...),
+		tbot.OptParseModeHTML, tbot.OptInlineKeyboardMarkup(&tbot.InlineKeyboardMarkup{InlineKeyboard: btnMatrix}))
 }
 
 func NewServerFromTbot(bot *tbot.Server) Server {

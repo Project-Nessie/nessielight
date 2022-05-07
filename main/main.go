@@ -23,6 +23,8 @@ func main() {
 		server.Sendf(chatid, "Hello! (current: %v)", time.Now())
 	})
 
+	registerAdminService(&server)
+
 	if err := server.Start(); err != nil {
 		log.Fatal(err)
 	}
