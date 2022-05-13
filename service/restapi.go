@@ -4,9 +4,9 @@ package service
 // interface for User
 // need implementation
 type User interface {
-	GetID() string
-	GetEmail() string
-	isAdmin() bool
+	ID() string
+	Email() string
+	IsAdmin() bool
 }
 
 // need implementation
@@ -16,4 +16,6 @@ type UserManager interface {
 	DeleteUser(user User) error
 	// find user by id, nil for not found
 	FindUser(id string) (User, error)
+	// generate new user by id
+	NewUser(id string) User
 }

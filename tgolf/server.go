@@ -1,4 +1,4 @@
-// a Telegram Bot Service framework
+// a Telegram Bot Service framework based on yanzay/tbot
 package tgolf
 
 import (
@@ -129,7 +129,7 @@ func (r *Server) Register(starter string, description string, init func(from *tb
 	}
 }
 
-// filter：决定是否使用本 callback
+// data: 按扭的 CallbackData
 func (r *Server) RegisterInlineButton(data string, handler func(cq *tbot.CallbackQuery)) {
 	r.callbacks[data] = handler
 }

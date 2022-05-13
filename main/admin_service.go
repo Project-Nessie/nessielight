@@ -1,6 +1,7 @@
 package main
 
 import (
+	"github.com/Project-Nessie/nessielight/service"
 	"github.com/Project-Nessie/nessielight/tgolf"
 	"github.com/yanzay/tbot/v2"
 )
@@ -78,9 +79,10 @@ func registerAdminService(server *tgolf.Server) {
 	server.RegisterInlineButton("a/user", func(cq *tbot.CallbackQuery) {
 		server.EditCallbackMsgWithBtn(cq, userManBtns, "User Management")
 	})
-	// !!!UNIMPLEMENTED
+	// 生成一个 token，用于注册用户
 	server.RegisterInlineButton("a/user/add", func(cq *tbot.CallbackQuery) {
-		server.EditCallbackMsg(cq, "<i>add user not implemented</i>")
+		token := service.AuthServiceInstance.GenToken()
+		server.Sendf(cq.Message.Chat.ID, "token: <code>%s</code>", token)
 	})
 	// !!!UNIMPLEMENTED
 	server.RegisterInlineButton("a/user/delete", func(cq *tbot.CallbackQuery) {

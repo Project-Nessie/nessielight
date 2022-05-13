@@ -29,7 +29,7 @@ func registerLoginService(server *tgolf.Server) {
 		tgolf.NewParam("token", "token", nil),
 	}, func(argv []tgolf.Argument, from *tbot.User, chatid string) {
 		token := argv[0].Value
-		if _, err := service.AuthServiceInstance.Register(token); err != nil {
+		if _, err := service.AuthServiceInstance.Register(token, fmt.Sprint(from.ID)); err != nil {
 			server.Sendf(chatid, "register failed: %s", err.Error())
 			return
 		}
