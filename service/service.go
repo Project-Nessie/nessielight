@@ -7,6 +7,7 @@ type V2rayService interface {
 	AddUser(email string) (uuid string, err error)
 	RemoveUser(email string) error
 	QueryUserTraffic(pattern string, reset bool) (stat []UserTrafficStat, err error)
+	Start(listen string) error
 }
 
 // need implementation

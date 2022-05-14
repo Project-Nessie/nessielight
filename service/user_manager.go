@@ -1,7 +1,5 @@
 package service
 
-var UserManagerInstance UserManager
-
 type simpleUserManager struct {
 	db map[string]User
 }
@@ -41,18 +39,7 @@ func (r *simpleUser) Email() string {
 	return r.email
 }
 
-// !!!
-func (r *simpleUser) IsAdmin() bool {
-	return true
-}
-
 func (r *simpleUserManager) NewUser(id string) User {
 	user := simpleUser{id: id}
 	return &user
-}
-
-func init() {
-	UserManagerInstance = &simpleUserManager{
-		db: make(map[string]User),
-	}
 }

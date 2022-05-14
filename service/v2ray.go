@@ -6,6 +6,7 @@ import (
 	b64 "encoding/base64"
 	"html/template"
 	"log"
+	"os"
 
 	"github.com/v2fly/v2ray-core/v4/app/proxyman/command"
 	statsService "github.com/v2fly/v2ray-core/v4/app/stats/command"
@@ -16,6 +17,8 @@ import (
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials/insecure"
 )
+
+var logger *log.Logger
 
 // 调用 V2ray API 的客户端
 // V2rayClient implements V2rayService
@@ -70,7 +73,7 @@ func (r *V2rayClient) RemoveUser(email string) error {
 	if err != nil {
 		return err
 	}
-	log.Printf("RemoveUser: email=%s", email)
+	logger.Printf("RemoveUser: email=%s", email)
 	return nil
 }
 
@@ -105,7 +108,7 @@ func (r *V2rayClient) QueryUserTraffic(pattern string, reset bool) ([]UserTraffi
 
 // 连接 v2ray API
 func (r *V2rayClient) Start(listen string) error {
-	defer log.Printf("V2rayClient start on %s, inbound: %s", listen, r.inboundTag)
+	defer logger.Printf("V2rayClient start on %s, inbound: %s", listen, r.inboundTag)
 	conn, err := grpc.Dial(listen, grpc.WithTransportCredentials(insecure.NewCredentials()), grpc.WithBlock())
 	if err != nil {
 		return err
@@ -193,3 +196,7 @@ var VConfJson = template.Must(template.New("confjson").Parse(`
    "v":"2"
 }
 `))
+
+func init() {
+	logger = log.New(os.Stderr, "[v2ray] ", log.LstdFlags|log.Lmsgprefix)
+}

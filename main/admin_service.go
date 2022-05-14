@@ -1,83 +1,65 @@
 package main
 
 import (
+	"fmt"
+
 	"github.com/Project-Nessie/nessielight/service"
 	"github.com/Project-Nessie/nessielight/tgolf"
 	"github.com/yanzay/tbot/v2"
 )
 
-// !!!UNIMPLEMENTED
+// provide admin using cli
 func isAdmin(userid int) bool {
-	return true
+	id := fmt.Sprint(userid)
+	for _, v := range admins {
+		if id == v {
+			return true
+		}
+	}
+	return false
 }
+
+var adminHelpText = `
+`
+
+var userManHelp = `
+Add User: generate new token for registering
+`
 
 func registerAdminService(server *tgolf.Server) {
 	adminBtns := [][]tbot.InlineKeyboardButton{
-		{{
-			Text:         "User Management",
-			CallbackData: "a/user",
-		}}, {{
-			Text:         "Service Control",
-			CallbackData: "a/service",
-		}}, {{
-			Text:         "Statistics",
-			CallbackData: "a/statistics",
-		}},
+		{{Text: "User Management", CallbackData: "a/user"}},
+		{{Text: "Service Control", CallbackData: "a/service"}},
+		{{Text: "Statistics", CallbackData: "a/statistics"}},
 	}
 	userManBtns := [][]tbot.InlineKeyboardButton{
-		{{
-			Text:         "Add User",
-			CallbackData: "a/user/add",
-		}}, {{
-			Text:         "Delete User",
-			CallbackData: "a/user/delete",
-		}}, {{
-			Text:         "Set User",
-			CallbackData: "a/user/set",
-		}}, {{
-			Text:         "Go Back",
-			CallbackData: "a/back",
-		}},
+		{{Text: "Add User", CallbackData: "a/user/add"}},
+		{{Text: "Delete User", CallbackData: "a/user/delete"}},
+		{{Text: "Set User", CallbackData: "a/user/set"}},
+		{{Text: "Go Back", CallbackData: "a/back"}},
 	}
 	serviceBtns := [][]tbot.InlineKeyboardButton{
-		{{
-			Text:         "Restart V2ray",
-			CallbackData: "a/service/v2rayrestart",
-		}}, {{
-			Text:         "View V2ray Log",
-			CallbackData: "a/service/v2raylog",
-		}}, {{
-			Text:         "Go Back",
-			CallbackData: "a/back",
-		}},
+		{{Text: "Restart V2ray", CallbackData: "a/service/v2rayrestart"}},
+		{{Text: "View V2ray Log", CallbackData: "a/service/v2raylog"}},
+		{{Text: "Go Back", CallbackData: "a/back"}},
 	}
 	statisBtns := [][]tbot.InlineKeyboardButton{
-		{{
-			Text:         "Get Top Traffic",
-			CallbackData: "a/statistics/toptraffic",
-		}}, {{
-			Text:         "Get Top Traffic Today",
-			CallbackData: "a/statistics/toptraffictoday",
-		}}, {{
-			Text:         "Reset Traffic",
-			CallbackData: "a/statistics/resettraffic",
-		}}, {{
-			Text:         "Go Back",
-			CallbackData: "a/back",
-		}},
+		{{Text: "Get Top Traffic", CallbackData: "a/statistics/toptraffic"}},
+		{{Text: "Get Top Traffic Today", CallbackData: "a/statistics/toptraffictoday"}},
+		{{Text: "Reset Traffic", CallbackData: "a/statistics/resettraffic"}},
+		{{Text: "Go Back", CallbackData: "a/back"}},
 	}
 
-	server.Register("/admin", "Admin Control", func(from *tbot.User, chat tbot.Chat) bool {
-		return from != nil && isAdmin(from.ID)
-	}, nil, func(argv []tgolf.Argument, from *tbot.User, chatid string) {
-		server.SendfWithBtn(chatid, adminBtns, "Your User ID: %d", from.ID)
-	})
+	server.Register("/admin", "Admin Control", combineInit(withPrivate, withAdmin), nil,
+		func(argv []tgolf.Argument, from *tbot.User, chatid string) {
+			server.SendfWithBtn(chatid, adminBtns, "Your User ID: %d\n%s", from.ID, adminHelpText)
+		})
 
 	server.RegisterInlineButton("a/back", func(cq *tbot.CallbackQuery) {
-		server.EditCallbackMsgWithBtn(cq, adminBtns, "Your User ID: %d", cq.From.ID)
+		server.EditCallbackMsgWithBtn(cq, adminBtns, "Your User ID: %d\n%s", cq.From.ID, adminHelpText)
 	})
 	server.RegisterInlineButton("a/user", func(cq *tbot.CallbackQuery) {
-		server.EditCallbackMsgWithBtn(cq, userManBtns, "User Management")
+		server.EditCallbackMsgWithBtn(cq, userManBtns, "User Management\n%s", userManHelp)
 	})
 	// 生成一个 token，用于注册用户
 	server.RegisterInlineButton("a/user/add", func(cq *tbot.CallbackQuery) {

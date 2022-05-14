@@ -9,11 +9,7 @@ import (
 )
 
 func registerLoginService(server *tgolf.Server) {
-	server.Register("/register", "Register yourself", func(from *tbot.User, chat tbot.Chat) bool {
-		if from == nil || chat.Type != "private" {
-			server.Sendf(chat.ID, "invalid environment")
-			return false
-		}
+	server.Register("/register", "Register yourself", combineInit(withPrivate, func(from *tbot.User, chat tbot.Chat) bool {
 		id := fmt.Sprint(from.ID)
 		user, err := service.UserManagerInstance.FindUser(id)
 		if err != nil {
@@ -25,7 +21,7 @@ func registerLoginService(server *tgolf.Server) {
 			return false
 		}
 		return true
-	}, []tgolf.Parameter{
+	}), []tgolf.Parameter{
 		tgolf.NewParam("token", "token", nil),
 	}, func(argv []tgolf.Argument, from *tbot.User, chatid string) {
 		token := argv[0].Value

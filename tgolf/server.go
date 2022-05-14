@@ -69,6 +69,7 @@ func (r *Server) Register(starter string, description string, init func(from *tb
 		text := m.Text
 
 		if init != nil && !init(from, chat) {
+			r.Sendf(chat.ID, "validation failed")
 			return
 		}
 

@@ -8,9 +8,7 @@ import (
 	"github.com/v2fly/v2ray-core/v4/common/uuid"
 )
 
-// need initialization
-var AuthServiceInstance TelegramAuthService
-var logger *log.Logger
+var authLog *log.Logger
 
 type simpleTelegramAuthService struct {
 	userManager *UserManager
@@ -21,7 +19,7 @@ func (r *simpleTelegramAuthService) GenToken() string {
 	uid := uuid.New()
 	token := uid.String()
 	r.tokenDB[token] = true
-	logger.Printf("generate token %s", token)
+	authLog.Printf("generate token %s", token)
 	return token
 }
 
@@ -38,9 +36,5 @@ func (r *simpleTelegramAuthService) Register(token string, id string) (User, err
 }
 
 func init() {
-	logger = log.New(os.Stderr, "[auth] ", log.LstdFlags|log.Lmsgprefix)
-	AuthServiceInstance = &simpleTelegramAuthService{
-		userManager: &UserManagerInstance,
-		tokenDB:     make(map[string]bool),
-	}
+	authLog = log.New(os.Stderr, "[auth] ", log.LstdFlags|log.Lmsgprefix)
 }

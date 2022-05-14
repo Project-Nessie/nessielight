@@ -6,7 +6,6 @@ package service
 type User interface {
 	ID() string
 	Email() string
-	IsAdmin() bool
 }
 
 // need implementation
