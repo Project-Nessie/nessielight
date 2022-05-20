@@ -1,6 +1,10 @@
 package nessielight
 
 import (
+	"database/sql"
+	sqldriver "database/sql/driver"
+	"fmt"
+
 	"gorm.io/driver/sqlite"
 	"gorm.io/gorm"
 )
@@ -51,6 +55,8 @@ func init() {
 type User interface {
 	ID() string
 	Email() string
+	Proxy() []Proxy
+	SetProxy(proxy []Proxy) error
 }
 
 // implemented by simpleUserManager
@@ -72,6 +78,8 @@ type V2rayService interface {
 	RemoveUser(email string) error
 	QueryUserTraffic(pattern string, reset bool) (stat []UserTrafficStat, err error)
 	Start(listen string) error
+	VmessText(vmessid string) string
+	VmessLink(vmessid string) string
 }
 
 // implemented by simpleTelegramAuthService
@@ -87,4 +95,70 @@ type SystemCtlService interface {
 	StartV2rayServer() error
 	StopV2rayServer() error
 	RestartV2rayServer() error
+}
+
+// describe a proxy config. Proxy can be store in sqldb
+type Proxy interface {
+	sql.Scanner
+	sqldriver.Valuer
+	// identify this proxy
+	ID() string
+	// apply this proxy
+	Activate() error
+	// remove this proxy
+	Deactivate() error
+	// introduce this proxy
+	Message() string
+}
+
+type v2rayProxy struct {
+	id string
+}
+
+func (r *v2rayProxy) ID() string {
+	return r.id
+}
+func (r *v2rayProxy) Activate() error {
+	V2rayServiceInstance.RemoveUser(r.id)
+	return V2rayServiceInstance.SetUser(r.id, r.id)
+}
+func (r *v2rayProxy) Deactivate() error {
+	return V2rayServiceInstance.RemoveUser(r.id)
+}
+func (r *v2rayProxy) Message() string {
+	return "<code>" + V2rayServiceInstance.VmessLink(r.id) + "</code>"
+}
+func (r *v2rayProxy) Value() (sqldriver.Value, error) {
+	return r.id, nil
+}
+func (r *v2rayProxy) Scan(src interface{}) error {
+	if id, ok := src.(string); ok {
+		r.id = id
+		return nil
+	}
+	return fmt.Errorf("invalid src type when scanning v2rayProxy")
+}
+
+func CreateV2rayProxy() Proxy {
+	proxy := v2rayProxy{
+		id: NewUUID(),
+	}
+	return &proxy
+}
+
+func GetUserProxyMessage(user User) string {
+	msg := "Proxy of " + user.ID() + "\n"
+	for _, proxy := range user.Proxy() {
+		msg += proxy.Message() + "\n"
+	}
+	return msg
+}
+
+func ApplyUserProxy(user User) error {
+	for _, proxy := range user.Proxy() {
+		if err := proxy.Activate(); err != nil {
+			return fmt.Errorf("ApplyUserProxy(id=%s): %s", user.ID(), err.Error())
+		}
+	}
+	return nil
 }

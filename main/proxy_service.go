@@ -1,8 +1,6 @@
 package main
 
 import (
-	"fmt"
-
 	"github.com/Project-Nessie/nessielight"
 	"github.com/Project-Nessie/nessielight/tgolf"
 	"github.com/yanzay/tbot/v2"
@@ -24,23 +22,37 @@ func registerProxyService(server *tgolf.Server) {
 		return nil
 	})
 	server.RegisterInlineButton("p/get", func(cq *tbot.CallbackQuery) error {
-		id := fmt.Sprint(cq.From.ID)
-		user, err := nessielight.UserManagerInstance.FindUser(id)
+		user, err := GetUserByTid(cq.From.ID)
 		if err != nil {
 			return err
 		}
-		nessielight.V2rayServiceInstance.RemoveUser(user.ID())
-		uuid, err := nessielight.V2rayServiceInstance.AddUser(user.ID())
-		if err != nil {
-			return err
-		}
-		server.Sendf(cq.Message.Chat.ID, "uuid: %s", uuid)
-		logger.Printf("uuid: %s", uuid)
+		nessielight.ApplyUserProxy(user)
+		server.Sendf(cq.Message.Chat.ID, nessielight.GetUserProxyMessage(user))
+		// nessielight.V2rayServiceInstance.RemoveUser(user.ID())
+		// uuid, err := nessielight.V2rayServiceInstance.AddUser(user.ID())
+		// if err != nil {
+		// 	return err
+		// }
+		// server.Sendf(cq.Message.Chat.ID, "uuid: %s", uuid)
+		// logger.Printf("uuid: %s", uuid)
 		return nil
 	})
-	// !!!UNIMPLEMENTED
 	server.RegisterInlineButton("p/upd", func(cq *tbot.CallbackQuery) error {
-		server.EditCallbackMsg(cq, "<i>update configs not implemented</i>")
+		user, err := GetUserByTid(cq.From.ID)
+		if err != nil {
+			return err
+		}
+		proxy := nessielight.CreateV2rayProxy()
+		if err := user.SetProxy([]nessielight.Proxy{proxy}); err != nil {
+			return err
+		}
+		if err := nessielight.ApplyUserProxy(user); err != nil {
+			return err
+		}
+		if err := nessielight.UserManagerInstance.SetUser(user); err != nil {
+			return err
+		}
+		server.EditCallbackMsg(cq, "Proxy has updated.")
 		return nil
 	})
 	// !!!UNIMPLEMENTED

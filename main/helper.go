@@ -38,3 +38,12 @@ func combineInit(inits ...func(from *tbot.User, chat tbot.Chat) bool) func(*tbot
 		return true
 	}
 }
+
+func GetUserByTid(id int) (nessielight.User, error) {
+	uid := fmt.Sprint(id)
+	user, err := nessielight.UserManagerInstance.FindUser(uid)
+	if err != nil {
+		return nil, err
+	}
+	return user, nil
+}

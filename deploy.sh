@@ -8,7 +8,8 @@ if [[ $? -ne 0 ]]; then
   exit 1
 fi
 
-CGO_ENABLED=0 go build -trimpath -v -ldflags='-s -w -extldflags "-static"' -o dest/nessielight ./main
+# CGO_ENABLED=0 go build -trimpath -v -ldflags='-s -w -extldflags "-static"' -o dest/nessielight ./main
+go build -trimpath -v -ldflags='-s -w -extldflags "-static"' -o dest/nessielight ./main
 
 upx -5 dest/nessielight # 压缩，可以不要
 

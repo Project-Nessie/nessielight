@@ -29,6 +29,7 @@ func (r *simpleUserManager) FindUser(id string) (User, error) {
 type simpleUser struct {
 	id    string
 	email string
+	proxy []Proxy
 }
 
 func (r *simpleUser) ID() string {
@@ -37,6 +38,15 @@ func (r *simpleUser) ID() string {
 
 func (r *simpleUser) Email() string {
 	return r.email
+}
+
+func (r *simpleUser) Proxy() []Proxy {
+	return r.proxy
+}
+
+func (r *simpleUser) SetProxy(proxy []Proxy) error {
+	r.proxy = proxy
+	return nil
 }
 
 func (r *simpleUserManager) NewUser(id string) User {

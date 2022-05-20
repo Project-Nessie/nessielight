@@ -50,12 +50,12 @@ func (r *v2rayClient) SetUser(email, id string) error {
 	if err != nil {
 		return err
 	}
-	log.Printf("SetUser: email=%s id=%s", email, id)
+	logger.Printf("SetUser: email=%s id=%s", email, id)
 	return nil
 }
 
 func (r *v2rayClient) AddUser(email string) (string, error) {
-	userID := protocol.NewID(uuid.New()).String()
+	userID := NewUUID()
 	err := r.SetUser(email, userID)
 	if err != nil {
 		return "", err
@@ -122,7 +122,8 @@ func (r *v2rayClient) Start(listen string) error {
 	return nil
 }
 
-func (r *v2rayClient) GetVConfig(vmessid string) string {
+// generate vmess link from vmessid
+func (r *v2rayClient) VmessLink(vmessid string) string {
 	if len(vmessid) < 6 {
 		vmessid = "123456"
 	}
@@ -133,14 +134,26 @@ func (r *v2rayClient) GetVConfig(vmessid string) string {
 		Domain: r.domain,
 		Path:   r.path,
 	}
-	var b, b2 bytes.Buffer
-	VConfText.Execute(&b, o)
-
-	b.WriteString("\n<b>Vmess 订阅:</b>\n")
+	var b2 bytes.Buffer
 	VConfJson.Execute(&b2, o)
 	str := b64.StdEncoding.EncodeToString(b2.Bytes())
-	b.WriteString("<code>vmess://" + str + "</code>")
+	return "vmess://" + str
+}
 
+// generate vmess proxy description from vmessid
+func (r *v2rayClient) VmessText(vmessid string) string {
+	if len(vmessid) < 6 {
+		vmessid = "123456"
+	}
+	o := vConfig{
+		Name:   r.domain + "_" + vmessid[:6],
+		ID:     vmessid,
+		Port:   r.port,
+		Domain: r.domain,
+		Path:   r.path,
+	}
+	var b bytes.Buffer
+	VConfText.Execute(&b, o)
 	return b.String()
 }
 
@@ -156,7 +169,6 @@ type vConfig struct {
 }
 
 var VConfText = template.Must(template.New("conftext").Parse(`
-<b>Proxy Settings:</b>
 协议类型: vmess
 地址: {{.Domain}}
 伪装域名/SNI: {{.Domain}}
@@ -187,4 +199,8 @@ var VConfJson = template.Must(template.New("confjson").Parse(`
 
 func init() {
 	logger = log.New(os.Stderr, "[v2ray] ", log.LstdFlags|log.Lmsgprefix)
+}
+
+func NewUUID() string {
+	return protocol.NewID(uuid.New()).String()
 }
