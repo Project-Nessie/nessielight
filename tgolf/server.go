@@ -24,13 +24,15 @@ type Command struct {
 	Handler  func(*tbot.Message)
 }
 
+type CallbackHandler = func(*tbot.CallbackQuery) error
+
 // tg bot server
 type Server struct {
 	Bot       *tbot.Server
 	Client    *tbot.Client
 	db        KVDatabase
 	commands  map[string]*Command
-	callbacks map[string]func(*tbot.CallbackQuery)
+	callbacks map[string]CallbackHandler
 }
 
 // Send formatted message to a chat with html parsing
@@ -130,7 +132,7 @@ func (r *Server) Register(starter string, description string, init func(from *tb
 }
 
 // data: 按扭的 CallbackData
-func (r *Server) RegisterInlineButton(data string, handler func(cq *tbot.CallbackQuery)) {
+func (r *Server) RegisterInlineButton(data string, handler CallbackHandler) {
 	r.callbacks[data] = handler
 }
 
@@ -138,7 +140,11 @@ func (r *Server) HandleCallback(cq *tbot.CallbackQuery) {
 	logger.Printf("HandleCallback: %s, message: %s", cq.Data, cq.Message.Text)
 	data := cq.Data
 	if r.callbacks[data] != nil {
-		r.callbacks[data](cq)
+		err := r.callbacks[data](cq)
+		if err != nil {
+			r.Sendf(cq.Message.Chat.ID, "[callback error]: %s", err.Error())
+			logger.Print(err)
+		}
 	}
 }
 
@@ -226,7 +232,7 @@ func NewServerFromTbot(bot *tbot.Server) Server {
 		db:        &db,
 		Client:    bot.Client(),
 		commands:  make(map[string]*Command),
-		callbacks: make(map[string]func(*tbot.CallbackQuery)),
+		callbacks: make(map[string]CallbackHandler),
 	}
 	return server
 }

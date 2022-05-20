@@ -19,33 +19,33 @@ func registerProxyService(server *tgolf.Server) {
 			server.SendfWithBtn(chatid, proxyBtns, "<b>Proxy Control</b>\nYour User ID: %d", from.ID)
 		})
 
-	server.RegisterInlineButton("p/back", func(cq *tbot.CallbackQuery) {
+	server.RegisterInlineButton("p/back", func(cq *tbot.CallbackQuery) error {
 		server.EditCallbackMsgWithBtn(cq, proxyBtns, "<b>Proxy Control</b>\nYour User ID: %d", cq.From.ID)
+		return nil
 	})
-	server.RegisterInlineButton("p/get", func(cq *tbot.CallbackQuery) {
+	server.RegisterInlineButton("p/get", func(cq *tbot.CallbackQuery) error {
 		id := fmt.Sprint(cq.From.ID)
 		user, err := nessielight.UserManagerInstance.FindUser(id)
 		if err != nil {
-			server.Sendf(cq.Message.Chat.ID, "[finduser]: %s", err.Error())
-			logger.Print(err)
-			return
+			return err
 		}
 		nessielight.V2rayServiceInstance.RemoveUser(user.ID())
 		uuid, err := nessielight.V2rayServiceInstance.AddUser(user.ID())
 		if err != nil {
-			server.Sendf(cq.Message.Chat.ID, "[adduser]: %s", err.Error())
-			logger.Print(err)
-			return
+			return err
 		}
 		server.Sendf(cq.Message.Chat.ID, "uuid: %s", uuid)
 		logger.Printf("uuid: %s", uuid)
+		return nil
 	})
 	// !!!UNIMPLEMENTED
-	server.RegisterInlineButton("p/upd", func(cq *tbot.CallbackQuery) {
+	server.RegisterInlineButton("p/upd", func(cq *tbot.CallbackQuery) error {
 		server.EditCallbackMsg(cq, "<i>update configs not implemented</i>")
+		return nil
 	})
 	// !!!UNIMPLEMENTED
-	server.RegisterInlineButton("p/stat", func(cq *tbot.CallbackQuery) {
+	server.RegisterInlineButton("p/stat", func(cq *tbot.CallbackQuery) error {
 		server.EditCallbackMsg(cq, "<i>traffic statistics not implemented</i>")
+		return nil
 	})
 }

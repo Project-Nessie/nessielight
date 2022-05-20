@@ -47,14 +47,13 @@ func init() {
 	}
 }
 
-// interface for User
-// need implementation
+// Interface for User. Typically implemented by UserManager.NewUser
 type User interface {
 	ID() string
 	Email() string
 }
 
-// need implementation
+// implemented by simpleUserManager
 type UserManager interface {
 	AddUser(user User) error
 	SetUser(user User) error
@@ -65,16 +64,17 @@ type UserManager interface {
 	NewUser(id string) User
 }
 
-// implemented by V2rayClient
+// implemented by v2rayClient
 type V2rayService interface {
 	SetUser(email string, uuid string) error
 	AddUser(email string) (uuid string, err error)
+	// remove a user identified by email
 	RemoveUser(email string) error
 	QueryUserTraffic(pattern string, reset bool) (stat []UserTrafficStat, err error)
 	Start(listen string) error
 }
 
-// need implementation
+// implemented by simpleTelegramAuthService
 type TelegramAuthService interface {
 	// 生成一个注册用的 token
 	GenToken() (token string)
