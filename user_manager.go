@@ -26,6 +26,16 @@ func (r *simpleUserManager) FindUser(id string) (User, error) {
 	return nil, nil
 }
 
+func (r *simpleUserManager) All() ([]User, error) {
+	var users []User = make([]User, 0, len(r.db))
+	for _, v := range r.db {
+		users = append(users, v)
+	}
+	return users, nil
+}
+
+var _ UserManager = (*simpleUserManager)(nil)
+
 type simpleUser struct {
 	id    string
 	email string

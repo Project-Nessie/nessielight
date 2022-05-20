@@ -2,6 +2,7 @@ package main
 
 import (
 	"fmt"
+	"strconv"
 
 	"github.com/Project-Nessie/nessielight"
 	"github.com/Project-Nessie/nessielight/tgolf"
@@ -33,10 +34,8 @@ func registerAdminService(server *tgolf.Server) {
 		{{Text: "Statistics", CallbackData: "a/statistics"}},
 	}
 	userManBtns := [][]tbot.InlineKeyboardButton{
-		{{Text: "Add User", CallbackData: "a/user/add"}},
-		{{Text: "Delete User", CallbackData: "a/user/delete"}},
-		{{Text: "Set User", CallbackData: "a/user/set"}},
-		{{Text: "Go Back", CallbackData: "a/back"}},
+		{{Text: "Add User", CallbackData: "a/user/add"}, {Text: "Delete User", CallbackData: "a/user/delete"}},
+		{{Text: "Set User", CallbackData: "a/user/set"}, {Text: "Go Back", CallbackData: "a/back"}},
 	}
 	serviceBtns := [][]tbot.InlineKeyboardButton{
 		{{Text: "Restart V2ray", CallbackData: "a/service/v2rayrestart"}},
@@ -65,13 +64,53 @@ func registerAdminService(server *tgolf.Server) {
 	})
 	// 生成一个 token，用于注册用户
 	server.RegisterInlineButton("a/user/add", func(cq *tbot.CallbackQuery) error {
+		server.EditCallbackBtn(cq, [][]tbot.InlineKeyboardButton{})
 		token := nessielight.AuthServiceInstance.GenToken()
 		server.Sendf(cq.Message.Chat.ID, "token: <code>%s</code>", token)
 		return nil
 	})
-	// !!!UNIMPLEMENTED
+
+	server.Register(">>>user/delete", "", nil, []tgolf.Parameter{
+		tgolf.NewParam("id", "user id", func(value string) bool {
+			id, err := strconv.ParseInt(value, 10, 64)
+			if err != nil {
+				return false
+			}
+			_, err = GetUserByTid(int(id))
+			return err == nil
+		}),
+	}, func(argv []tgolf.Argument, from *tbot.User, chatid string) {
+		id, err := strconv.ParseInt(argv[0].Value, 10, 64)
+		if err != nil {
+			logger.Print(err)
+			return
+		}
+		user, err := GetUserByTid(int(id))
+		if err != nil {
+			logger.Print(err)
+			return
+		}
+		if err := nessielight.UserManagerInstance.DeleteUser(user); err != nil {
+			logger.Print(err)
+			return
+		}
+		server.Sendf(chatid, "done.")
+	})
+
 	server.RegisterInlineButton("a/user/delete", func(cq *tbot.CallbackQuery) error {
-		server.EditCallbackMsg(cq, "<i>delete user not implemented</i>")
+		users, err := nessielight.UserManagerInstance.All()
+		if err != nil {
+			return err
+		}
+		msg := "Users:\n"
+		for _, v := range users {
+			msg += "<code>" + v.ID() + "</code>" + "\n"
+		}
+		server.EditCallbackBtn(cq, [][]tbot.InlineKeyboardButton{})
+		server.Sendf(cq.Message.Chat.ID, msg)
+		if err := server.StartCommand(">>>user/delete", cq.From, cq.Message.Chat); err != nil {
+			return err
+		}
 		return nil
 	})
 	// !!!UNIMPLEMENTED

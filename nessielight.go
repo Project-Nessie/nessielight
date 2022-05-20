@@ -68,6 +68,7 @@ type UserManager interface {
 	FindUser(id string) (User, error)
 	// generate new user by id
 	NewUser(id string) User
+	All() ([]User, error)
 }
 
 // implemented by v2rayClient

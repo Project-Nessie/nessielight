@@ -19,16 +19,22 @@ func main() {
 	logger.Printf("Hello World!")
 	server := tgolf.NewServer(botToken, webhookUrl, listenAddr)
 
+	nessielight.InitDBwithFile("test.db")
+	nessielight.InitV2rayService(inboundTag, vmessPort, vmessAddress, wsPath, v2rayApi)
+
 	server.Register("/hello", "Hello!", nil, nil, func(argv []tgolf.Argument, from *tbot.User, chatid string) {
-		server.Sendf(chatid, "Hello!\nYour ID: <code>%d</code>\nAdministration: <b>%v</b>", from.ID, isAdmin(from.ID))
+		if from == nil {
+			server.Sendf(chatid, "invalid interaction")
+			return
+		}
+		user, _ := GetUserByTid(from.ID)
+		server.Sendf(chatid, "Hello!\nYour ID: <code>%d</code>\nAdministration: <b>%v</b>\nRegistered: <b>%v</b>",
+			from.ID, isAdmin(from.ID), user != nil)
 	})
 
 	registerAdminService(&server)
 	registerProxyService(&server)
 	registerLoginService(&server)
-
-	nessielight.InitDBwithFile("test.db")
-	nessielight.InitV2rayService(inboundTag, vmessPort, vmessAddress, wsPath, v2rayApi)
 
 	if err := server.Start(); err != nil {
 		log.Fatal(err)
