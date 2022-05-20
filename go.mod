@@ -6,11 +6,16 @@ require (
 	github.com/v2fly/v2ray-core/v4 v4.45.0
 	github.com/yanzay/tbot/v2 v2.2.0
 	google.golang.org/grpc v1.41.0
+	gorm.io/driver/sqlite v1.3.2
+	gorm.io/gorm v1.23.5
 )
 
 require (
 	github.com/dgryski/go-metro v0.0.0-20200812162917-85c65e2d0165 // indirect
 	github.com/golang/protobuf v1.5.2 // indirect
+	github.com/jinzhu/inflection v1.0.0 // indirect
+	github.com/jinzhu/now v1.1.5 // indirect
+	github.com/mattn/go-sqlite3 v1.14.12 // indirect
 	github.com/pires/go-proxyproto v0.6.1 // indirect
 	github.com/riobard/go-bloom v0.0.0-20200614022211-cdc8013cb5b3 // indirect
 	github.com/seiflotfy/cuckoofilter v0.0.0-20201222105146-bc6005554a0c // indirect

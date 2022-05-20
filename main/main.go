@@ -6,7 +6,7 @@ import (
 	"log"
 	"os"
 
-	"github.com/Project-Nessie/nessielight/service"
+	"github.com/Project-Nessie/nessielight"
 	"github.com/Project-Nessie/nessielight/tgolf"
 	"github.com/yanzay/tbot/v2"
 )
@@ -27,12 +27,8 @@ func main() {
 	registerProxyService(&server)
 	registerLoginService(&server)
 
-	client := service.NewV2rayClient(inboundTag, vmessPort, vmessAddress, wsPath)
-	service.V2rayServiceInstance = &client
-
-	if err := service.V2rayServiceInstance.Start(v2rayApi); err != nil {
-		log.Fatal(err)
-	}
+	nessielight.InitDBwithFile("test.db")
+	nessielight.InitV2rayService(inboundTag, vmessPort, vmessAddress, wsPath, v2rayApi)
 
 	if err := server.Start(); err != nil {
 		log.Fatal(err)

@@ -1,5 +1,4 @@
-// common.go implements common interfaces and structs
-package nessielight
+package tgolf
 
 import (
 	"strings"

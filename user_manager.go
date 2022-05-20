@@ -1,4 +1,4 @@
-package service
+package nessielight
 
 type simpleUserManager struct {
 	db map[string]User

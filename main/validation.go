@@ -3,7 +3,7 @@ package main
 import (
 	"fmt"
 
-	"github.com/Project-Nessie/nessielight/service"
+	"github.com/Project-Nessie/nessielight"
 	"github.com/yanzay/tbot/v2"
 )
 
@@ -17,7 +17,7 @@ func withAdmin(from *tbot.User, chat tbot.Chat) bool {
 
 func withAuth(from *tbot.User, chat tbot.Chat) bool {
 	id := fmt.Sprint(from.ID)
-	user, err := service.UserManagerInstance.FindUser(id)
+	user, err := nessielight.UserManagerInstance.FindUser(id)
 	if err != nil {
 		logger.Print("error: ", err)
 		return false

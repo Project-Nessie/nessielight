@@ -18,8 +18,6 @@ func (i *arrayFlags) Set(value string) error {
 
 var botToken, webhookUrl, listenAddr, v2rayApi string
 var admins arrayFlags
-
-// flags
 var inboundTag, vmessAddress, wsPath string
 var vmessPort int
 

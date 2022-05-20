@@ -3,7 +3,7 @@ package main
 import (
 	"fmt"
 
-	"github.com/Project-Nessie/nessielight/service"
+	"github.com/Project-Nessie/nessielight"
 	"github.com/Project-Nessie/nessielight/tgolf"
 	"github.com/yanzay/tbot/v2"
 )
@@ -63,7 +63,7 @@ func registerAdminService(server *tgolf.Server) {
 	})
 	// 生成一个 token，用于注册用户
 	server.RegisterInlineButton("a/user/add", func(cq *tbot.CallbackQuery) {
-		token := service.AuthServiceInstance.GenToken()
+		token := nessielight.AuthServiceInstance.GenToken()
 		server.Sendf(cq.Message.Chat.ID, "token: <code>%s</code>", token)
 	})
 	// !!!UNIMPLEMENTED

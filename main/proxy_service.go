@@ -3,7 +3,7 @@ package main
 import (
 	"fmt"
 
-	"github.com/Project-Nessie/nessielight/service"
+	"github.com/Project-Nessie/nessielight"
 	"github.com/Project-Nessie/nessielight/tgolf"
 	"github.com/yanzay/tbot/v2"
 )
@@ -24,14 +24,14 @@ func registerProxyService(server *tgolf.Server) {
 	})
 	server.RegisterInlineButton("p/get", func(cq *tbot.CallbackQuery) {
 		id := fmt.Sprint(cq.From.ID)
-		user, err := service.UserManagerInstance.FindUser(id)
+		user, err := nessielight.UserManagerInstance.FindUser(id)
 		if err != nil {
 			server.Sendf(cq.Message.Chat.ID, "[finduser]: %s", err.Error())
 			logger.Print(err)
 			return
 		}
-		service.V2rayServiceInstance.RemoveUser(user.ID())
-		uuid, err := service.V2rayServiceInstance.AddUser(user.ID())
+		nessielight.V2rayServiceInstance.RemoveUser(user.ID())
+		uuid, err := nessielight.V2rayServiceInstance.AddUser(user.ID())
 		if err != nil {
 			server.Sendf(cq.Message.Chat.ID, "[adduser]: %s", err.Error())
 			logger.Print(err)

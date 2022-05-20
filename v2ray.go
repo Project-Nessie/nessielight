@@ -1,4 +1,4 @@
-package service
+package nessielight
 
 import (
 	"bytes"
@@ -21,8 +21,8 @@ import (
 var logger *log.Logger
 
 // 调用 V2ray API 的客户端
-// V2rayClient implements V2rayService
-type V2rayClient struct {
+// v2rayClient implements V2rayService
+type v2rayClient struct {
 	statClient statsService.StatsServiceClient
 	handClient command.HandlerServiceClient
 	// vmess settings
@@ -32,7 +32,7 @@ type V2rayClient struct {
 	path       string
 }
 
-func (r *V2rayClient) SetUser(email, id string) error {
+func (r *v2rayClient) SetUser(email, id string) error {
 	_, err := r.handClient.AlterInbound(context.Background(), &command.AlterInboundRequest{
 		Tag: r.inboundTag,
 		Operation: serial.ToTypedMessage(&command.AddUserOperation{
@@ -54,7 +54,7 @@ func (r *V2rayClient) SetUser(email, id string) error {
 	return nil
 }
 
-func (r *V2rayClient) AddUser(email string) (string, error) {
+func (r *v2rayClient) AddUser(email string) (string, error) {
 	userID := protocol.NewID(uuid.New()).String()
 	err := r.SetUser(email, userID)
 	if err != nil {
@@ -63,7 +63,7 @@ func (r *V2rayClient) AddUser(email string) (string, error) {
 	return userID, nil
 }
 
-func (r *V2rayClient) RemoveUser(email string) error {
+func (r *v2rayClient) RemoveUser(email string) error {
 	_, err := r.handClient.AlterInbound(context.Background(), &command.AlterInboundRequest{
 		Tag: r.inboundTag,
 		Operation: serial.ToTypedMessage(&command.RemoveUserOperation{
@@ -82,7 +82,7 @@ type UserTrafficStat struct {
 	Value int64
 }
 
-func (r *V2rayClient) QueryUserTraffic(pattern string, reset bool) ([]UserTrafficStat, error) {
+func (r *v2rayClient) QueryUserTraffic(pattern string, reset bool) ([]UserTrafficStat, error) {
 	resp, err := r.statClient.QueryStats(context.Background(), &statsService.QueryStatsRequest{
 		Pattern: pattern,
 		Reset_:  reset, // 查询完成后是否重置流量
@@ -107,8 +107,8 @@ func (r *V2rayClient) QueryUserTraffic(pattern string, reset bool) ([]UserTraffi
 }
 
 // 连接 v2ray API
-func (r *V2rayClient) Start(listen string) error {
-	defer logger.Printf("V2rayClient start on %s, inbound: %s", listen, r.inboundTag)
+func (r *v2rayClient) Start(listen string) error {
+	defer logger.Printf("v2rayClient start on %s, inbound: %s", listen, r.inboundTag)
 	conn, err := grpc.Dial(listen, grpc.WithTransportCredentials(insecure.NewCredentials()), grpc.WithBlock())
 	if err != nil {
 		return err
@@ -122,7 +122,7 @@ func (r *V2rayClient) Start(listen string) error {
 	return nil
 }
 
-func (r *V2rayClient) GetVConfig(vmessid string) string {
+func (r *v2rayClient) GetVConfig(vmessid string) string {
 	if len(vmessid) < 6 {
 		vmessid = "123456"
 	}
@@ -144,19 +144,7 @@ func (r *V2rayClient) GetVConfig(vmessid string) string {
 	return b.String()
 }
 
-var _ V2rayService = (*V2rayClient)(nil)
-
-// inboundtag 即包含所有用户的 inbound 配置对应的 tag，需提前在 v2ray 设置好，目前只支持 vmess 协议。
-// port, domain, path 为 v2ray 的监听端口、域名和路径信息，用于生成配置信息。
-func NewV2rayClient(inboundtag string, port int, domain, path string) V2rayClient {
-	server := V2rayClient{
-		inboundTag: inboundtag,
-		port:       port,
-		domain:     domain,
-		path:       path,
-	}
-	return server
-}
+var _ V2rayService = (*v2rayClient)(nil)
 
 // vmess tls
 type vConfig struct {

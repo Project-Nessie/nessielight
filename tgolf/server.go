@@ -7,7 +7,6 @@ import (
 	"os"
 	"time"
 
-	"github.com/Project-Nessie/nessielight"
 	"github.com/yanzay/tbot/v2"
 )
 
@@ -29,7 +28,7 @@ type Command struct {
 type Server struct {
 	Bot       *tbot.Server
 	Client    *tbot.Client
-	db        nessielight.KVDatabase
+	db        KVDatabase
 	commands  map[string]*Command
 	callbacks map[string]func(*tbot.CallbackQuery)
 }
@@ -221,7 +220,7 @@ func (r *Server) EditCallbackMsgWithBtn(cq *tbot.CallbackQuery, btnMatrix [][]tb
 }
 
 func NewServerFromTbot(bot *tbot.Server) Server {
-	db := nessielight.NewMemoryDB()
+	db := NewMemoryDB()
 	server := Server{
 		Bot:       bot,
 		db:        &db,
