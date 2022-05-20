@@ -38,7 +38,7 @@ var _ UserManager = (*simpleUserManager)(nil)
 
 type simpleUser struct {
 	id    string
-	email string
+	name  string
 	proxy []Proxy
 }
 
@@ -46,8 +46,8 @@ func (r *simpleUser) ID() string {
 	return r.id
 }
 
-func (r *simpleUser) Email() string {
-	return r.email
+func (r *simpleUser) Name() string {
+	return r.name
 }
 
 func (r *simpleUser) Proxy() []Proxy {
@@ -58,6 +58,13 @@ func (r *simpleUser) SetProxy(proxy []Proxy) error {
 	r.proxy = proxy
 	return nil
 }
+
+func (r *simpleUser) SetName(name string) error {
+	r.name = name
+	return nil
+}
+
+var _ User = (*simpleUser)(nil)
 
 func (r *simpleUserManager) NewUser(id string) User {
 	user := simpleUser{id: id}

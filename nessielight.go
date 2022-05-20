@@ -54,9 +54,10 @@ func init() {
 // Interface for User. Typically implemented by UserManager.NewUser
 type User interface {
 	ID() string
-	Email() string
+	Name() string
 	Proxy() []Proxy
 	SetProxy(proxy []Proxy) error
+	SetName(name string) error
 }
 
 // implemented by simpleUserManager

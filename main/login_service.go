@@ -25,7 +25,16 @@ func registerLoginService(server *tgolf.Server) {
 		tgolf.NewParam("token", "token", nil),
 	}, func(argv []tgolf.Argument, from *tbot.User, chatid string) {
 		token := argv[0].Value
-		if _, err := nessielight.AuthServiceInstance.Register(token, fmt.Sprint(from.ID)); err != nil {
+		user, err := nessielight.AuthServiceInstance.Register(token, fmt.Sprint(from.ID))
+		if err != nil {
+			server.Sendf(chatid, "register failed: %s", err.Error())
+			return
+		}
+		if err := user.SetName(from.Username); err != nil {
+			server.Sendf(chatid, "register failed: %s", err.Error())
+			return
+		}
+		if err := nessielight.UserManagerInstance.SetUser(user); err != nil {
 			server.Sendf(chatid, "register failed: %s", err.Error())
 			return
 		}
