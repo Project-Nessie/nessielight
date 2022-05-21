@@ -74,7 +74,7 @@ func registerAdminService(server *tgolf.Server) {
 
 	server.Register(">>>user/delete", "", nil, []tgolf.Parameter{
 		tgolf.NewParam("id", "user id", func(value string) bool {
-			id, err := strconv.ParseInt(value, 10, 64)
+			id, err := strconv.ParseInt(value, 10, 32)
 			if err != nil {
 				return false
 			}
@@ -82,7 +82,7 @@ func registerAdminService(server *tgolf.Server) {
 			return err == nil
 		}),
 	}, func(argv []tgolf.Argument, from *tbot.User, chatid string) {
-		id, err := strconv.ParseInt(argv[0].Value, 10, 64)
+		id, err := strconv.ParseInt(argv[0].Value, 10, 32)
 		if err != nil {
 			logger.Print(err)
 			return
