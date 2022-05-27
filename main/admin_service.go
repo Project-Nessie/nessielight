@@ -140,40 +140,40 @@ func registerAdminService(server *tgolf.Server) {
 		server.EditCallbackMsgWithBtn(cq, statisBtns, "Service Control")
 		return nil
 	})
+
 	server.RegisterInlineButton("a/statistics/toptraffic", func(cq *tbot.CallbackQuery) error {
-		stats, err := nessielight.GetV2rayTraffic()
+		inbounds, err := nessielight.GetV2rayTraffic()
 		if err != nil {
 			return err
 		}
-		users, inbounds := stats.Users(), stats.Inbounds()
-		sort.Sort(users)
-		sort.Sort(inbounds)
+		sort.Slice(inbounds, func(i, j int) bool {
+			return inbounds[i].Downlink > inbounds[j].Downlink
+		})
 
-		parseValue := func(num int64) string {
-			if num < 1000 {
-				return fmt.Sprint(num, "B")
-			} else if num < 1e6 {
-				return fmt.Sprint(int(num/1e3), "KB")
-			} else if num < 1e9 {
-				return fmt.Sprint(int(num/1e6), "MB")
-			} else {
-				return fmt.Sprint(int(num/1e9), "GB")
-			}
+		if err := nessielight.V2rayUpdateUserTraffic(); err != nil {
+			return err
 		}
+		users, err := nessielight.UserManagerInstance.All()
+		if err != nil {
+			return err
+		}
+		sort.Slice(users, func(i, j int) bool {
+			return users[i].Traffic().Downlink > users[j].Traffic().Downlink
+		})
 
-		reducer := func(msg string, v nessielight.UserTraffic) string {
+		msg := ""
+		msg = msg + "<b><u>Inbound Traffics sorted by downlink</u></b>\n"
+		msg = utils.Reduce(inbounds, func(msg string, v nessielight.NamedTraffic) string {
 			name := v.Name
-			if v.Type == nessielight.Unregistered {
-				name = "<i>" + v.Name + "</i>"
-			}
-			return fmt.Sprintf("%s%s down <b>%s</b> up <b>%s</b>\n", msg, name,
-				parseValue(v.Downlink), parseValue(v.Uplink))
-		}
-
-		msg := "<b><u>User Traffics sorted by downlink</u></b>\n"
-		msg = utils.Reduce(users, reducer, msg)
-		msg = msg + "\n<b><u>Inbound Traffics sorted by downlink</u></b>\n"
-		msg = utils.Reduce(inbounds, reducer, msg)
+			return fmt.Sprintf("%s%s down <b>%v</b> up <b>%v</b>\n", msg, name,
+				v.Downlink, v.Uplink)
+		}, msg)
+		msg = msg + "\n<b><u>User Traffics sorted by downlink</u></b>\n"
+		msg = utils.Reduce(users, func(msg string, v nessielight.User) string {
+			name := v.Name()
+			traffic := v.Traffic()
+			return fmt.Sprintf("%s%s down <b>%v</b> up <b>%v</b>\n", msg, name, traffic.Downlink, traffic.Uplink)
+		}, msg)
 
 		server.EditCallbackMsg(cq, msg)
 		return nil

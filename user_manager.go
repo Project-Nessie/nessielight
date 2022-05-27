@@ -47,9 +47,10 @@ func (r *simpleUserManager) All() ([]User, error) {
 var _ UserManager = (*simpleUserManager)(nil)
 
 type simpleUser struct {
-	id    string
-	name  string
-	proxy []Proxy
+	id      string
+	name    string
+	proxy   []Proxy
+	traffic TrafficValue
 }
 
 func (r *simpleUser) ID() string {
@@ -71,6 +72,14 @@ func (r *simpleUser) SetProxy(proxy []Proxy) error {
 
 func (r *simpleUser) SetName(name string) error {
 	r.name = name
+	return nil
+}
+
+func (r *simpleUser) Traffic() TrafficValue {
+	return r.traffic
+}
+func (r *simpleUser) SetTraffic(val TrafficValue) error {
+	r.traffic = val
 	return nil
 }
 

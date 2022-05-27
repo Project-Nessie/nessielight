@@ -5,8 +5,6 @@ import (
 	"context"
 	b64 "encoding/base64"
 	"html/template"
-	"log"
-	"os"
 
 	"github.com/v2fly/v2ray-core/v4/app/proxyman/command"
 	statsService "github.com/v2fly/v2ray-core/v4/app/stats/command"
@@ -17,8 +15,6 @@ import (
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials/insecure"
 )
-
-var logger *log.Logger
 
 // 调用 V2ray API 的客户端
 // v2rayClient implements V2rayService
@@ -77,26 +73,27 @@ func (r *v2rayClient) RemoveUser(email string) error {
 	return nil
 }
 
-type UserTrafficStat struct {
+type V2rayTrafficStat struct {
 	Name  string
 	Value int64
 }
 
-func (r *v2rayClient) QueryUserTraffic(pattern string, reset bool) ([]UserTrafficStat, error) {
+// reset is used to determine whether resetting traffic statistics
+func (r *v2rayClient) QueryTraffic(pattern string, reset bool) ([]V2rayTrafficStat, error) {
 	resp, err := r.statClient.QueryStats(context.Background(), &statsService.QueryStatsRequest{
 		Pattern: pattern,
-		Reset_:  reset, // 查询完成后是否重置流量
+		Reset_:  reset,
 	})
 	if err != nil {
 		return nil, err
 	}
-	// 获取返回值中的流量信息
+
 	stat := resp.GetStat()
-	trafficStat := make([]UserTrafficStat, 0, len(stat))
+	trafficStat := make([]V2rayTrafficStat, 0, len(stat))
 
 	for _, v := range stat {
 		if v != nil {
-			trafficStat = append(trafficStat, UserTrafficStat{
+			trafficStat = append(trafficStat, V2rayTrafficStat{
 				Name:  v.GetName(),
 				Value: v.GetValue(),
 			})
@@ -104,6 +101,11 @@ func (r *v2rayClient) QueryUserTraffic(pattern string, reset bool) ([]UserTraffi
 	}
 
 	return trafficStat, nil
+}
+
+// reset is used to determine whether resetting traffic statistics
+func (r *v2rayClient) QueryUserTraffic(reset bool) ([]V2rayTrafficStat, error) {
+	return r.QueryTraffic("user>>>"+r.inboundTag, reset)
 }
 
 // 连接 v2ray API
@@ -157,6 +159,15 @@ func (r *v2rayClient) VmessText(vmessid string) string {
 	return b.String()
 }
 
+func (r *v2rayClient) NewProxy() Proxy {
+	id := NewUUID()
+	proxy := v2rayProxy{
+		email: r.inboundTag + "-" + id,
+		id:    id,
+	}
+	return &proxy
+}
+
 var _ V2rayService = (*v2rayClient)(nil)
 
 // vmess tls
@@ -197,10 +208,39 @@ var VConfJson = template.Must(template.New("confjson").Parse(`
 }
 `))
 
-func init() {
-	logger = log.New(os.Stderr, "[v2ray] ", log.LstdFlags|log.Lmsgprefix)
-}
-
 func NewUUID() string {
 	return protocol.NewID(uuid.New()).String()
 }
+
+// implement Proxy
+type v2rayProxy struct {
+	email string
+	id    string
+}
+
+func (r *v2rayProxy) ID() string {
+	return r.id
+}
+func (r *v2rayProxy) Activate() error {
+	V2rayServiceInstance.RemoveUser(r.email)
+	return V2rayServiceInstance.SetUser(r.email, r.id)
+}
+func (r *v2rayProxy) Deactivate() error {
+	return V2rayServiceInstance.RemoveUser(r.email)
+}
+func (r *v2rayProxy) Message() string {
+	return "v2ray(vmess): <code>" + V2rayServiceInstance.VmessLink(r.id) + "</code>"
+}
+
+var _ Proxy = (*v2rayProxy)(nil)
+
+// func (r *v2rayProxy) Value() (sqldriver.Value, error) {
+// 	return r.id, nil
+// }
+// func (r *v2rayProxy) Scan(src interface{}) error {
+// 	if id, ok := src.(string); ok {
+// 		r.id = id
+// 		return nil
+// 	}
+// 	return fmt.Errorf("invalid src type when scanning v2rayProxy")
+// }

@@ -1,15 +1,17 @@
 package nessielight
 
 import (
-	"database/sql"
-	sqldriver "database/sql/driver"
 	"fmt"
+	"log"
+	"os"
 	"regexp"
 
 	"github.com/Project-Nessie/nessielight/utils"
 	"gorm.io/driver/sqlite"
 	"gorm.io/gorm"
 )
+
+var logger *log.Logger
 
 type GormDB = gorm.DB
 
@@ -60,6 +62,9 @@ type User interface {
 	Proxy() []Proxy
 	SetProxy(proxy []Proxy) error
 	SetName(name string) error
+	// total traffic stored
+	Traffic() TrafficValue
+	SetTraffic(val TrafficValue) error
 }
 
 // implemented by simpleUserManager
@@ -82,10 +87,13 @@ type V2rayService interface {
 	AddUser(email string) (uuid string, err error)
 	// remove a user identified by email
 	RemoveUser(email string) error
-	QueryUserTraffic(pattern string, reset bool) (stat []UserTrafficStat, err error)
+	QueryTraffic(pattern string, reset bool) (stat []V2rayTrafficStat, err error)
+	// query traffic for user under control only
+	QueryUserTraffic(reset bool) (stat []V2rayTrafficStat, err error)
 	Start(listen string) error
 	VmessText(vmessid string) string
 	VmessLink(vmessid string) string
+	NewProxy() Proxy
 }
 
 // implemented by simpleTelegramAuthService
@@ -105,51 +113,16 @@ type SystemCtlService interface {
 
 // describe a proxy config. Proxy can be store in sqldb
 type Proxy interface {
-	sql.Scanner
-	sqldriver.Valuer
+	// sql.Scanner
+	// sqldriver.Valuer
 	// identify this proxy
 	ID() string
 	// apply this proxy
 	Activate() error
 	// remove this proxy
 	Deactivate() error
-	// introduce this proxy
+	// introduce this proxy in telegram message
 	Message() string
-}
-
-type v2rayProxy struct {
-	id string
-}
-
-func (r *v2rayProxy) ID() string {
-	return r.id
-}
-func (r *v2rayProxy) Activate() error {
-	V2rayServiceInstance.RemoveUser(r.id)
-	return V2rayServiceInstance.SetUser(r.id, r.id)
-}
-func (r *v2rayProxy) Deactivate() error {
-	return V2rayServiceInstance.RemoveUser(r.id)
-}
-func (r *v2rayProxy) Message() string {
-	return "<code>" + V2rayServiceInstance.VmessLink(r.id) + "</code>"
-}
-func (r *v2rayProxy) Value() (sqldriver.Value, error) {
-	return r.id, nil
-}
-func (r *v2rayProxy) Scan(src interface{}) error {
-	if id, ok := src.(string); ok {
-		r.id = id
-		return nil
-	}
-	return fmt.Errorf("invalid src type when scanning v2rayProxy")
-}
-
-func CreateV2rayProxy() Proxy {
-	proxy := v2rayProxy{
-		id: NewUUID(),
-	}
-	return &proxy
 }
 
 func GetUserProxyMessage(user User) string {
@@ -169,93 +142,91 @@ func ApplyUserProxy(user User) error {
 	return nil
 }
 
-type UserType int
-
-const (
-	Unregistered UserType = 0
-	Registered   UserType = 1
-	Inbound      UserType = 2
-)
-
-type UserTraffic struct {
-	ID               string
-	Name             string
-	Type             UserType
-	Uplink, Downlink int64
+type TrafficValue struct {
+	Uplink, Downlink utils.ByteValue
 }
 
 var reTraffic = regexp.MustCompile(`(.*?)>>>(.*?)>>>traffic>>>((downlink|uplink))`)
 
-func GetV2rayTraffic() (UserTraffics, error) {
-	stats, err := V2rayServiceInstance.QueryUserTraffic("", false)
+func trafficNameMatch(trafficname string) (category, name, linktype string) {
+	if matches := reTraffic.FindSubmatch([]byte(trafficname)); len(matches) > 3 {
+		return string(matches[1]), string(matches[2]), string(matches[3])
+	}
+	return "", "", ""
+}
+
+const UUIDLen = 36
+
+// Get current traffic stats of all inbounds.
+// Note that user stats is not correct due to V2rayUpdateUserTraffic
+func GetV2rayTraffic() ([]NamedTraffic, error) {
+	stats, err := V2rayServiceInstance.QueryTraffic("inbound>>>", false)
 	if err != nil {
 		return nil, err
 	}
-	var traffics map[string]*UserTraffic = make(map[string]*UserTraffic)
+	var traffics map[string]*NamedTraffic = make(map[string]*NamedTraffic)
 
 	for _, v := range stats {
-		if matches := reTraffic.FindSubmatch([]byte(v.Name)); len(matches) > 3 {
-			category := string(matches[1])
-			name, id := string(matches[2]), ""
-			if category == "user" {
-				typ := Unregistered
-				id = name
-				if user, err := UserManagerInstance.FindUserByProxy(id); err == nil && user != nil {
-					// registered
-					name = user.Name()
-					typ = Registered
-				}
-				if traffics[id] == nil {
-					traffics[id] = &UserTraffic{
-						ID:   id,
-						Name: name,
-						Type: typ,
-					}
-				}
-			} else if category == "inbound" {
-				id = "inbound-" + name
-				if traffics[id] == nil {
-					traffics[id] = &UserTraffic{
-						ID:   id,
-						Name: name,
-						Type: Inbound,
-					}
-				}
-			} else {
-				continue
+		_, name, linktype := trafficNameMatch(v.Name)
+		id := name
+		if traffics[id] == nil {
+			traffics[id] = &NamedTraffic{
+				Name: name,
 			}
+		}
 
-			if string(matches[3]) == "downlink" {
-				traffics[id].Downlink = v.Value
-			} else if string(matches[3]) == "uplink" {
-				traffics[id].Uplink = v.Value
-			}
+		if linktype == "downlink" {
+			traffics[id].Downlink = utils.ByteValue(v.Value)
+		} else if linktype == "uplink" {
+			traffics[id].Uplink = utils.ByteValue(v.Value)
 		}
 	}
 
-	var usertraffic []UserTraffic = make([]UserTraffic, 0, len(traffics))
-	for _, v := range traffics {
-		logger.Print(v)
-		usertraffic = append(usertraffic, *v)
+	return utils.Flatten(traffics, func(val *NamedTraffic) NamedTraffic {
+		return *val
+	}), nil
+	// var usertraffic []NamedTraffic = make([]NamedTraffic, 0, len(traffics))
+	// for _, v := range traffics {
+	// 	logger.Print(v)
+	// 	usertraffic = append(usertraffic, *v)
+	// }
+	// return usertraffic, nil
+}
+
+type NamedTraffic struct {
+	TrafficValue
+	Name string
+}
+
+func V2rayUpdateUserTraffic() error {
+	stats, err := V2rayServiceInstance.QueryUserTraffic(true) // !!! false just for debug
+	if err != nil {
+		return err
 	}
-	return usertraffic, nil
+	for _, v := range stats {
+		_, name, linktype := trafficNameMatch(v.Name)
+		id := name[len(name)-UUIDLen:]
+		logger.Print("V2rayUpdateUserTraffic ", name, " ", linktype, " ", utils.ByteValue(v.Value))
+		logger.Print("V2rayUpdateUserTraffic id=", id)
+		if user, err := UserManagerInstance.FindUserByProxy(id); err == nil && user != nil {
+			data := user.Traffic()
+			if linktype == "downlink" {
+				data.Downlink += utils.ByteValue(v.Value)
+			} else if linktype == "uplink" {
+				data.Uplink += utils.ByteValue(v.Value)
+			}
+			if err := user.SetTraffic(data); err != nil {
+				return err
+			}
+			if err := UserManagerInstance.SetUser(user); err != nil {
+				return err
+			}
+			logger.Print("V2rayUpdateUserTraffic user:", user.Traffic())
+		}
+	}
+	return nil
 }
 
-type UserTraffics []UserTraffic
-
-func (r UserTraffics) Users() UserTraffics {
-	return utils.Filter(r, func(t UserTraffic) bool {
-		return t.Type != Inbound
-	})
+func init() {
+	logger = log.New(os.Stderr, "[nessielight] ", log.LstdFlags|log.Lmsgprefix)
 }
-
-func (r UserTraffics) Inbounds() UserTraffics {
-	return utils.Filter(r, func(t UserTraffic) bool {
-		return t.Type == Inbound
-	})
-}
-
-// default sort key
-func (a UserTraffics) Len() int           { return len(a) }
-func (a UserTraffics) Swap(i, j int)      { a[i], a[j] = a[j], a[i] }
-func (a UserTraffics) Less(i, j int) bool { return a[i].Downlink > a[j].Downlink }

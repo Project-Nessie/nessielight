@@ -23,6 +23,20 @@ Since _Nessie Light_ use api to communicate with v2ray, you should enable api an
     "tag": "api",
     "services": ["StatsService", "LoggerService", "HandlerService"]
   },
+  "policy": {
+    "levels": {
+      "0": {
+        "statsUserUplink": true,
+        "statsUserDownlink": true
+      }
+    },
+    "system": {
+      "statsInboundUplink": true,
+      "statsInboundDownlink": true,
+      "statsOutboundUplink": true,
+      "statsOutboundDownlink": true
+    }
+  },
   "inbounds": [
     {
       "tag": "api",

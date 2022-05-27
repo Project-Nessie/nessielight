@@ -35,7 +35,7 @@ func registerProxyService(server *tgolf.Server) {
 		if err != nil {
 			return err
 		}
-		proxy := nessielight.CreateV2rayProxy()
+		proxy := nessielight.V2rayServiceInstance.NewProxy()
 		if err := user.SetProxy([]nessielight.Proxy{proxy}); err != nil {
 			return err
 		}
