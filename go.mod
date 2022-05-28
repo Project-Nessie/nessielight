@@ -3,6 +3,7 @@ module github.com/Project-Nessie/nessielight
 go 1.18
 
 require (
+	github.com/Project-Nessie/nessielight/utils v0.0.0-20220528001815-7d1a0418e022
 	github.com/v2fly/v2ray-core/v4 v4.45.0
 	github.com/yanzay/tbot/v2 v2.2.0
 	google.golang.org/grpc v1.41.0
