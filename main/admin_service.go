@@ -123,6 +123,7 @@ func registerAdminService(server *tgolf.Server) {
 		server.EditCallbackMsgWithBtn(cq, serviceBtns, "Service Control")
 		return nil
 	})
+
 	// !!!UNIMPLEMENTED
 	server.RegisterInlineButton("a/service/v2rayrestart", func(cq *tbot.CallbackQuery) error {
 		server.EditCallbackMsg(cq, "<i>v2ray start not implemented</i>")

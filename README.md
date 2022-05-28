@@ -52,34 +52,6 @@ Since _Nessie Light_ use api to communicate with v2ray, you should enable api an
 }
 ```
 
-_Nessie Light_ place all user in a single taged inbound, thus add an inbound with specified tag:
-
-```json
-{
-  "inbounds": [
-    {
-      "tag": "multiuser",
-      "listen": "0.0.0.0",
-      "port": 38888,
-      "protocol": "vmess",
-      "settings": {
-        "clients": []
-      },
-      "streamSettings": {
-        "network": "ws",
-        "wsSettings": {
-          "path": "/apath"
-        }
-      },
-      "sniffing": {
-        "enabled": true,
-        "destOverride": ["http", "tls"]
-      }
-    }
-  ]
-}
-```
-
 Now restart v2ray service.
 
 Currently, you're supposed to build _Nessie Light_ from source to get the executable:
@@ -103,14 +75,17 @@ Usage of ./nessielight:
     	v2ray api listening address
   -vmessaddr string
     	vmess address
+  -vmessclientport int
+    	vmess client port (default 443)
   -vmessport int
-    	vmess port (default 443)
+    	vmess listening port (default 12345)
   -vmesstag string
     	vmess inbound tag
   -webhook string
     	tg bot webhook url
   -wspath string
     	websocket path
+
 ```
 
 Lastly, create a telegram bot with webhook setting to corresponding url, and you're ready to start:
@@ -121,6 +96,7 @@ $ ./nessielight -token xxxxxx\
     -listen 0.0.0.0:12345\
     -vmessaddr example.com\
     -vmessport 38888\
+    -vmessclientport 443\
     -vmesstag multiuser\
     -wspath /apath\
     -v2rayapi 127.0.0.1:10085\
