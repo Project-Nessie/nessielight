@@ -46,7 +46,6 @@ func registerAdminService(server *tgolf.Server) {
 	}
 	statisBtns := [][]tbot.InlineKeyboardButton{
 		{{Text: "Get Top Traffic", CallbackData: "a/statistics/toptraffic"}},
-		{{Text: "Get Top Traffic Today", CallbackData: "a/statistics/toptraffictoday"}},
 		{{Text: "Reset Traffic", CallbackData: "a/statistics/resettraffic"}},
 		{{Text: "Go Back", CallbackData: "a/back"}},
 	}
@@ -176,11 +175,6 @@ func registerAdminService(server *tgolf.Server) {
 		}, msg)
 
 		server.EditCallbackMsg(cq, msg)
-		return nil
-	})
-	// !!!UNIMPLEMENTED
-	server.RegisterInlineButton("a/statistics/toptraffictoday", func(cq *tbot.CallbackQuery) error {
-		server.EditCallbackMsg(cq, "<i>top traffic today not implemented</i>")
 		return nil
 	})
 	// !!!UNIMPLEMENTED
