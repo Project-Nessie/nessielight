@@ -20,7 +20,7 @@ func main() {
 	server := tgolf.NewServer(botToken, webhookUrl, listenAddr)
 
 	nessielight.InitDBwithFile("test.db")
-	nessielight.InitV2rayService(inboundTag, vmessPort, vmessAddress, wsPath, v2rayApi)
+	nessielight.InitV2rayService(inboundTag, vmessPort, vmessClientPort, vmessAddress, wsPath, v2rayApi)
 
 	server.Register("/hello", "Hello!", nil, nil, func(argv []tgolf.Argument, from *tbot.User, chatid string) {
 		if from == nil {

@@ -6,12 +6,18 @@ import (
 	b64 "encoding/base64"
 	"html/template"
 
+	core "github.com/v2fly/v2ray-core/v4"
+	"github.com/v2fly/v2ray-core/v4/app/proxyman"
 	"github.com/v2fly/v2ray-core/v4/app/proxyman/command"
 	statsService "github.com/v2fly/v2ray-core/v4/app/stats/command"
+	"github.com/v2fly/v2ray-core/v4/common/net"
 	"github.com/v2fly/v2ray-core/v4/common/protocol"
 	"github.com/v2fly/v2ray-core/v4/common/serial"
 	"github.com/v2fly/v2ray-core/v4/common/uuid"
 	"github.com/v2fly/v2ray-core/v4/proxy/vmess"
+	vmessInbound "github.com/v2fly/v2ray-core/v4/proxy/vmess/inbound"
+	"github.com/v2fly/v2ray-core/v4/transport/internet"
+	"github.com/v2fly/v2ray-core/v4/transport/internet/websocket"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials/insecure"
 )
@@ -22,10 +28,53 @@ type v2rayClient struct {
 	statClient statsService.StatsServiceClient
 	handClient command.HandlerServiceClient
 	// vmess settings
-	inboundTag string
-	port       int
-	domain     string
-	path       string
+	inboundTag       string
+	port, clientport int
+	domain           string
+	path             string
+}
+
+func (r *v2rayClient) AddVmessWsInbound(tag string, port uint16, wspath string) error {
+	_, err := r.handClient.AddInbound(context.Background(), &command.AddInboundRequest{
+		Inbound: &core.InboundHandlerConfig{
+			Tag: tag,
+			ReceiverSettings: serial.ToTypedMessage(&proxyman.ReceiverConfig{
+				PortRange: net.SinglePortRange(net.Port(port)),
+				Listen:    net.NewIPOrDomain(net.LocalHostIP), // 127.0.0.1
+				StreamSettings: &internet.StreamConfig{
+					ProtocolName: "websocket",
+					TransportSettings: []*internet.TransportConfig{{
+						ProtocolName: "websocket",
+						Settings: serial.ToTypedMessage(&websocket.Config{
+							Path: wspath,
+						}),
+					}},
+				},
+				SniffingSettings: &proxyman.SniffingConfig{
+					Enabled:             true,
+					DestinationOverride: []string{"http", "tls"},
+				},
+			}),
+			ProxySettings: serial.ToTypedMessage(&vmessInbound.Config{
+				User: []*protocol.User{},
+			}),
+		},
+	})
+	if err != nil {
+		return err
+	}
+	logger.Printf("successfully add inbound %s, port=%d, path=%s", tag, port, wspath)
+	return nil
+}
+func (r *v2rayClient) RemoveInbound(tag string) error {
+	_, err := r.handClient.RemoveInbound(context.Background(), &command.RemoveInboundRequest{
+		Tag: tag,
+	})
+	if err != nil {
+		return err
+	}
+	logger.Printf("successfully remove inbound %s", tag)
+	return nil
 }
 
 func (r *v2rayClient) SetUser(email, id string) error {
@@ -132,7 +181,7 @@ func (r *v2rayClient) VmessLink(vmessid string) string {
 	o := vConfig{
 		Name:   r.domain + "_" + vmessid[:6],
 		ID:     vmessid,
-		Port:   r.port,
+		Port:   r.clientport,
 		Domain: r.domain,
 		Path:   r.path,
 	}
@@ -150,7 +199,7 @@ func (r *v2rayClient) VmessText(vmessid string) string {
 	o := vConfig{
 		Name:   r.domain + "_" + vmessid[:6],
 		ID:     vmessid,
-		Port:   r.port,
+		Port:   r.clientport,
 		Domain: r.domain,
 		Path:   r.path,
 	}

@@ -30,10 +30,11 @@ var AuthServiceInstance TelegramAuthService
 var UserManagerInstance UserManager
 var V2rayServiceInstance V2rayService
 
-func InitV2rayService(inboundTag string, vmessPort int, vmessAddress, wsPath, v2rayApi string) error {
+func InitV2rayService(inboundTag string, vmessPort, vmessClientPort int, vmessAddress, wsPath, v2rayApi string) error {
 	client := v2rayClient{
 		inboundTag: inboundTag,
 		port:       vmessPort,
+		clientport: vmessClientPort,
 		domain:     vmessAddress,
 		path:       wsPath,
 	}
@@ -42,6 +43,11 @@ func InitV2rayService(inboundTag string, vmessPort int, vmessAddress, wsPath, v2
 	if err := V2rayServiceInstance.Start(v2rayApi); err != nil {
 		return err
 	}
+	V2rayServiceInstance.RemoveInbound(inboundTag)
+	if err := V2rayServiceInstance.AddVmessWsInbound(inboundTag, uint16(vmessPort), wsPath); err != nil {
+		return err
+	}
+
 	return nil
 }
 
@@ -94,6 +100,8 @@ type V2rayService interface {
 	VmessText(vmessid string) string
 	VmessLink(vmessid string) string
 	NewProxy() Proxy
+	AddVmessWsInbound(tag string, port uint16, wspath string) error
+	RemoveInbound(tag string) error
 }
 
 // implemented by simpleTelegramAuthService
