@@ -1,6 +1,8 @@
 package main
 
 import (
+	"fmt"
+
 	"github.com/Project-Nessie/nessielight"
 	"github.com/Project-Nessie/nessielight/tgolf"
 	"github.com/yanzay/tbot/v2"
@@ -31,9 +33,15 @@ func registerProxyService(server *tgolf.Server) {
 		return nil
 	})
 	server.RegisterInlineButton("p/upd", func(cq *tbot.CallbackQuery) error {
+		if err := nessielight.V2rayUpdateUserTraffic(); err != nil {
+			return err
+		}
 		user, err := GetUserByTid(cq.From.ID)
 		if err != nil {
 			return err
+		}
+		for _, p := range user.Proxy() {
+			p.Deactivate()
 		}
 		proxy := nessielight.V2rayServiceInstance.NewProxy()
 		if err := user.SetProxy([]nessielight.Proxy{proxy}); err != nil {
@@ -45,12 +53,22 @@ func registerProxyService(server *tgolf.Server) {
 		if err := nessielight.UserManagerInstance.SetUser(user); err != nil {
 			return err
 		}
-		server.EditCallbackMsg(cq, "Proxy has updated.")
+		server.EditCallbackMsgWithBtn(cq, [][]tbot.InlineKeyboardButton{}, "Proxy has updated.")
+		server.Sendf(cq.Message.Chat.ID, nessielight.GetUserProxyMessage(user))
 		return nil
 	})
-	// !!!UNIMPLEMENTED
+
 	server.RegisterInlineButton("p/stat", func(cq *tbot.CallbackQuery) error {
-		server.EditCallbackMsg(cq, "<i>traffic statistics not implemented</i>")
+		user, err := GetUserByTid(cq.From.ID)
+		if err != nil {
+			return err
+		}
+		if err := nessielight.V2rayUpdateUserTraffic(); err != nil {
+			return err
+		}
+		traffic := user.Traffic()
+		server.EditCallbackMsgWithBtn(cq, [][]tbot.InlineKeyboardButton{},
+			fmt.Sprintf("down <b>%v</b> up <b>%v</b>\n", traffic.Downlink, traffic.Uplink))
 		return nil
 	})
 }

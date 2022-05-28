@@ -65,9 +65,8 @@ func registerAdminService(server *tgolf.Server) {
 	})
 	// 生成一个 token，用于注册用户
 	server.RegisterInlineButton("a/user/add", func(cq *tbot.CallbackQuery) error {
-		server.EditCallbackBtn(cq, [][]tbot.InlineKeyboardButton{})
 		token := nessielight.AuthServiceInstance.GenToken()
-		server.Sendf(cq.Message.Chat.ID, "token: <code>%s</code>", token)
+		server.EditCallbackMsgWithBtn(cq, [][]tbot.InlineKeyboardButton{}, "token: <code>%s</code>", token)
 		return nil
 	})
 
