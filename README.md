@@ -2,7 +2,7 @@
 
 :warning: This project is still under rapid development, thus everything may change.
 
-<a href="https://github.com/Project-Nessie/nessielight/blob/master/LICENSE"><img alt="GitHub license" src="https://img.shields.io/github/license/Project-Nessie/nessielight"></a> <a href="https://app.fossa.com/projects/git%2Bgithub.com%2FProject-Nessie%2Fnessielight?ref=badge_shield" alt="FOSSA Status"><img src="https://app.fossa.com/api/projects/git%2Bgithub.com%2FProject-Nessie%2Fnessielight.svg?type=shield"/></a> <a href="https://goreportcard.com/report/github.com/Project-Nessie/nessielight"><img alt="GitHub license" src="https://goreportcard.com/badge/github.com/Project-Nessie/nessielight"></a>
+<a href="https://github.com/Project-Nessie/nessielight/blob/master/LICENSE"><img alt="GitHub license" src="https://img.shields.io/github/license/Project-Nessie/nessielight"></a> <a href="https://app.fossa.com/projects/git%2Bgithub.com%2FProject-Nessie%2Fnessielight?ref=badge_shield" alt="FOSSA Status"><img src="https://app.fossa.com/api/projects/git%2Bgithub.com%2FProject-Nessie%2Fnessielight.svg?type=shield"/></a> <a href="https://goreportcard.com/report/github.com/Project-Nessie/nessielight"><img alt="GitHub license" src="https://goreportcard.com/badge/github.com/Project-Nessie/nessielight"></a> <a href="https://pkg.go.dev/github.com/Project-Nessie/nessielight"><img src="https://pkg.go.dev/badge/github.com/Project-Nessie/nessielight.svg" alt="Go Reference"></a>
 
 ## Overview
 
