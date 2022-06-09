@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"context"
 	b64 "encoding/base64"
+	"fmt"
 	"html/template"
 
 	core "github.com/v2fly/v2ray-core/v4"
@@ -20,6 +21,7 @@ import (
 	"github.com/v2fly/v2ray-core/v4/transport/internet/websocket"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials/insecure"
+	"gorm.io/gorm"
 )
 
 // 调用 V2ray API 的客户端
@@ -209,11 +211,10 @@ func (r *v2rayClient) VmessText(vmessid string) string {
 }
 
 func (r *v2rayClient) NewProxy() Proxy {
-	id := NewUUID()
 	proxy := v2rayProxy{
-		email: r.inboundTag + "-" + id,
-		id:    id,
+		Uuid: NewUUID(),
 	}
+	DataBase.Create(&proxy)
 	return &proxy
 }
 
@@ -263,33 +264,28 @@ func NewUUID() string {
 
 // implement Proxy
 type v2rayProxy struct {
-	email string
-	id    string
+	gorm.Model
+	Uuid string
 }
 
-func (r *v2rayProxy) ID() string {
-	return r.id
+func (r *v2rayProxy) email() string {
+	return V2rayServiceInstance.(*v2rayClient).inboundTag + fmt.Sprint(r.ID)
+}
+func (r *v2rayProxy) ProxyID() uint {
+	return r.ID
 }
 func (r *v2rayProxy) Activate() error {
-	V2rayServiceInstance.RemoveUser(r.email)
-	return V2rayServiceInstance.SetUser(r.email, r.id)
+	V2rayServiceInstance.RemoveUser(r.email())
+	return V2rayServiceInstance.SetUser(r.email(), r.Uuid)
 }
 func (r *v2rayProxy) Deactivate() error {
-	return V2rayServiceInstance.RemoveUser(r.email)
+	return V2rayServiceInstance.RemoveUser(r.email())
 }
 func (r *v2rayProxy) Message() string {
-	return "v2ray(vmess): <code>" + V2rayServiceInstance.VmessLink(r.id) + "</code>"
+	return "v2ray(vmess): <code>" + V2rayServiceInstance.VmessLink(r.Uuid) + "</code>"
+}
+func (r *v2rayProxy) String() string {
+	return fmt.Sprintf("{ID=%d, Uuid=%s}", r.ID, r.Uuid)
 }
 
 var _ Proxy = (*v2rayProxy)(nil)
-
-// func (r *v2rayProxy) Value() (sqldriver.Value, error) {
-// 	return r.id, nil
-// }
-// func (r *v2rayProxy) Scan(src interface{}) error {
-// 	if id, ok := src.(string); ok {
-// 		r.id = id
-// 		return nil
-// 	}
-// 	return fmt.Errorf("invalid src type when scanning v2rayProxy")
-// }

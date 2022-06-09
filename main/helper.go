@@ -1,8 +1,6 @@
 package main
 
 import (
-	"fmt"
-
 	"github.com/Project-Nessie/nessielight"
 	"github.com/yanzay/tbot/v2"
 )
@@ -16,8 +14,7 @@ func withAdmin(from *tbot.User, chat tbot.Chat) bool {
 }
 
 func withAuth(from *tbot.User, chat tbot.Chat) bool {
-	id := fmt.Sprint(from.ID)
-	user, err := nessielight.UserManagerInstance.FindUser(id)
+	user, err := nessielight.UserManagerInstance.FindUserByTelegramID(from.ID)
 	if err != nil {
 		logger.Print("error: ", err)
 		return false
@@ -40,8 +37,7 @@ func combineInit(inits ...func(from *tbot.User, chat tbot.Chat) bool) func(*tbot
 }
 
 func GetUserByTid(id int) (nessielight.User, error) {
-	uid := fmt.Sprint(id)
-	user, err := nessielight.UserManagerInstance.FindUser(uid)
+	user, err := nessielight.UserManagerInstance.FindUserByTelegramID(id)
 	if err != nil {
 		return nil, err
 	}

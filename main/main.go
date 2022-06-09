@@ -14,14 +14,22 @@ import (
 var logger *log.Logger
 
 func main() {
+	logger.Printf("Nessielight Start.")
 	flag.Parse()
 
-	logger.Printf("Hello World!")
+	// nessielight
+	if err := nessielight.InitDBwithFile("test.db"); err != nil {
+		log.Fatal(err)
+	}
+	if err := nessielight.InitV2rayService(inboundTag, vmessPort, vmessClientPort, vmessAddress, wsPath, v2rayApi); err != nil {
+		log.Fatal(err)
+	}
+	if err := nessielight.Restore(); err != nil {
+		log.Fatal(err)
+	}
+
+	// tgolf server
 	server := tgolf.NewServer(botToken, webhookUrl, listenAddr)
-
-	nessielight.InitDBwithFile("test.db")
-	nessielight.InitV2rayService(inboundTag, vmessPort, vmessClientPort, vmessAddress, wsPath, v2rayApi)
-
 	server.Register("/hello", "Hello!", nil, nil, func(argv []tgolf.Argument, from *tbot.User, chatid string) {
 		if from == nil {
 			server.Sendf(chatid, "invalid interaction")
