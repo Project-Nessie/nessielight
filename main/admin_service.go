@@ -104,7 +104,7 @@ func registerAdminService(server *tgolf.Server) {
 		}
 		msg := "Users:\n"
 		for _, v := range users {
-			msg += v.Name() + ": <code>" + v.ID() + "</code>" + "\n"
+			msg += fmt.Sprint(v.Name(), ": <code>", v.TelegramID(), "</code>\n")
 		}
 		server.EditCallbackBtn(cq, [][]tbot.InlineKeyboardButton{})
 		server.Sendf(cq.Message.Chat.ID, msg)

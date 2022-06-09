@@ -1,8 +1,6 @@
 package main
 
 import (
-	"fmt"
-
 	"github.com/Project-Nessie/nessielight"
 	"github.com/Project-Nessie/nessielight/tgolf"
 	"github.com/yanzay/tbot/v2"
@@ -10,8 +8,7 @@ import (
 
 func registerLoginService(server *tgolf.Server) {
 	server.Register("/register", "Register yourself", combineInit(withPrivate, func(from *tbot.User, chat tbot.Chat) bool {
-		id := fmt.Sprint(from.ID)
-		user, err := nessielight.UserManagerInstance.FindUser(id)
+		user, err := nessielight.UserManagerInstance.FindUserByTelegramID(from.ID)
 		if err != nil {
 			server.Sendf(chat.ID, err.Error())
 			return false
@@ -25,7 +22,7 @@ func registerLoginService(server *tgolf.Server) {
 		tgolf.NewParam("token", "token", nil),
 	}, func(argv []tgolf.Argument, from *tbot.User, chatid string) {
 		token := argv[0].Value
-		user, err := nessielight.AuthServiceInstance.Register(token, fmt.Sprint(from.ID))
+		user, err := nessielight.AuthServiceInstance.Register(token, from.ID)
 		if err != nil {
 			server.Sendf(chatid, "register failed: %s", err.Error())
 			return

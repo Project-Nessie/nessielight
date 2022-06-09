@@ -23,7 +23,7 @@ func (r *simpleTelegramAuthService) GenToken() string {
 	return token
 }
 
-func (r *simpleTelegramAuthService) Register(token string, id string) (User, error) {
+func (r *simpleTelegramAuthService) Register(token string, id int) (User, error) {
 	if !r.tokenDB[token] {
 		return nil, fmt.Errorf("token %s invalid", token)
 	}
@@ -38,3 +38,5 @@ func (r *simpleTelegramAuthService) Register(token string, id string) (User, err
 func init() {
 	authLog = log.New(os.Stderr, "[auth] ", log.LstdFlags|log.Lmsgprefix)
 }
+
+var _ TelegramAuthService = (*simpleTelegramAuthService)(nil)

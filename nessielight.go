@@ -5,6 +5,7 @@ import (
 	"log"
 	"os"
 	"regexp"
+	"strconv"
 
 	"github.com/Project-Nessie/nessielight/utils"
 	"gorm.io/driver/sqlite"
@@ -15,14 +16,30 @@ var logger *log.Logger
 
 type GormDB = gorm.DB
 
-var DB *GormDB
+var DataBase *GormDB
 
 func InitDBwithFile(path string) error {
 	db, err := gorm.Open(sqlite.Open(path), &gorm.Config{})
 	if err != nil {
 		return err
 	}
-	DB = db
+	DataBase = db
+	if err := DataBase.AutoMigrate(&v2rayProxy{}); err != nil {
+		return err
+	}
+	if err := DataBase.AutoMigrate(&simpleUser{}); err != nil {
+		return err
+	}
+	var proxies []v2rayProxy
+	DataBase.Find(&proxies)
+	for _, v := range proxies {
+		logger.Print(&v)
+	}
+	var users []simpleUser
+	DataBase.Find(&users)
+	for _, v := range users {
+		logger.Print("user id=", v.ID, " tid=", v.Registerid, " proxy:", v.V2rayProxyID)
+	}
 	return nil
 }
 
@@ -56,14 +73,12 @@ func init() {
 		userManager: &UserManagerInstance,
 		tokenDB:     make(map[string]bool),
 	}
-	UserManagerInstance = &simpleUserManager{
-		db: make(map[string]User),
-	}
+	UserManagerInstance = &simpleUserManager{}
 }
 
 // Interface for User. Typically implemented by UserManager.NewUser
 type User interface {
-	ID() string
+	TelegramID() int
 	Name() string
 	Proxy() []Proxy
 	SetProxy(proxy []Proxy) error
@@ -79,11 +94,11 @@ type UserManager interface {
 	SetUser(user User) error
 	DeleteUser(user User) error
 	// find user by id, nil for not found
-	FindUser(id string) (User, error)
+	FindUserByTelegramID(tid int) (User, error)
 	// find user by proxy id, nil for not found
-	FindUserByProxy(proxyid string) (User, error)
+	FindUserByProxy(proxyid uint) (User, error)
 	// generate new user by id
-	NewUser(id string) User
+	NewUser(tid int) User
 	All() ([]User, error)
 }
 
@@ -109,7 +124,7 @@ type TelegramAuthService interface {
 	// 生成一个注册用的 token
 	GenToken() (token string)
 	// 使用 token 注册用户，注册失败（token不匹配）返回错误
-	Register(token string, id string) (User, error)
+	Register(token string, tid int) (User, error)
 }
 
 // need implementation
@@ -121,10 +136,8 @@ type SystemCtlService interface {
 
 // describe a proxy config. Proxy can be store in sqldb
 type Proxy interface {
-	// sql.Scanner
-	// sqldriver.Valuer
 	// identify this proxy
-	ID() string
+	ProxyID() uint
 	// apply this proxy
 	Activate() error
 	// remove this proxy
@@ -134,7 +147,7 @@ type Proxy interface {
 }
 
 func GetUserProxyMessage(user User) string {
-	msg := "Proxy of " + user.ID() + "\n"
+	msg := fmt.Sprint("Proxy of ", user.TelegramID(), "\n")
 	for _, proxy := range user.Proxy() {
 		msg += proxy.Message() + "\n"
 	}
@@ -144,7 +157,7 @@ func GetUserProxyMessage(user User) string {
 func ApplyUserProxy(user User) error {
 	for _, proxy := range user.Proxy() {
 		if err := proxy.Activate(); err != nil {
-			return fmt.Errorf("ApplyUserProxy(id=%s): %s", user.ID(), err.Error())
+			return fmt.Errorf("ApplyUserProxy(id=%d): %s", user.TelegramID(), err.Error())
 		}
 	}
 	return nil
@@ -193,12 +206,6 @@ func GetV2rayTraffic() ([]NamedTraffic, error) {
 	return utils.Flatten(traffics, func(val *NamedTraffic) NamedTraffic {
 		return *val
 	}), nil
-	// var usertraffic []NamedTraffic = make([]NamedTraffic, 0, len(traffics))
-	// for _, v := range traffics {
-	// 	logger.Print(v)
-	// 	usertraffic = append(usertraffic, *v)
-	// }
-	// return usertraffic, nil
 }
 
 type NamedTraffic struct {
@@ -213,10 +220,17 @@ func V2rayUpdateUserTraffic() error {
 	}
 	for _, v := range stats {
 		_, name, linktype := trafficNameMatch(v.Name)
-		id := name[len(name)-UUIDLen:]
+		id := name[len(V2rayServiceInstance.(*v2rayClient).inboundTag):]
+
+		uid, err := strconv.ParseInt(id, 10, 32)
+		if err != nil {
+			logger.Print("V2rayUpdateUserTraffic invalid email: ", name)
+			continue
+		}
+
 		logger.Print("V2rayUpdateUserTraffic ", name, " ", linktype, " ", utils.ByteValue(v.Value))
 		logger.Print("V2rayUpdateUserTraffic id=", id)
-		if user, err := UserManagerInstance.FindUserByProxy(id); err == nil && user != nil {
+		if user, err := UserManagerInstance.FindUserByProxy(uint(uid)); err == nil && user != nil {
 			data := user.Traffic()
 			if linktype == "downlink" {
 				data.Downlink += utils.ByteValue(v.Value)
@@ -237,4 +251,17 @@ func V2rayUpdateUserTraffic() error {
 
 func init() {
 	logger = log.New(os.Stderr, "[nessielight] ", log.LstdFlags|log.Lmsgprefix)
+}
+
+func Restore() error {
+	users, err := UserManagerInstance.All()
+	if err != nil {
+		return err
+	}
+	for _, v := range users {
+		for _, p := range v.Proxy() {
+			p.Activate()
+		}
+	}
+	return nil
 }
